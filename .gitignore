@@ -1,0 +1,7 @@
+operations.db
+*.csv
+*.zip
+venv/
+env/
+__pycache__/
+.ipynb_checkpoints/

@@ -4,18 +4,42 @@
 
 ```mermaid
 graph TD
-    A[Raw Flight Data CSV] -->|Ingest & Clean| B(db_setup.py)
-    B -->|Format Timestamps & Index| C[(SQLite: operations.db)]
-    C -->|Calculate Ground Turnaround via LAG| D(turnaround_analytics.sql)
-    C -->|Extract Features| E(train_model.py)
-    D -->|Isolate Network Choke Points| F[Delay Propagation Metrics]
-    E -->|Random Forest Classifier| G[Predict Buffer Breaches]
-    G -->|FAA $75/min Benchmark| H[Financial Cost Impact]
+    subgraph Data Engineering Pipeline
+        A[(Raw Airline CSV)] -->|Ingest & Parse| B(db_setup.py)
+        B -->|Clean missing data| C{Filter Cancelled}
+        C -->|Format Timestamps| D[(SQLite: operations.db)]
+    end
+
+    subgraph Analytical SQL Engine
+        D -->|LAG Window Functions| E(turnaround_analytics.sql)
+        E -->|Track Physical Tail Numbers| F[Ground Turnaround Metrics]
+        F -->|Flag Cascading Delays| G[Network Choke Points]
+    end
+
+    subgraph Machine Learning & Prediction
+        D -->|Query SQL Features| H(train_model.py)
+        H -->|Engineer Congestion/Buffers| I[Random Forest Classifier]
+        I -->|Address Class Imbalance| J[Buffer Breach Predictions]
+    end
     
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style C fill:#f96,stroke:#333,stroke-width:2px
-    style G fill:#9f9,stroke:#333,stroke-width:2px
-    style H fill:#9cf,stroke:#333,stroke-width:2px
+    subgraph Executive Financial Translation
+        J -->|Model Evaluation| K[Precision: 78% | Recall: 66%]
+        K -->|FAA $75/min Benchmark| L[Financial Cost Impact]
+        L -->|$51.2M Exposure| M((Potential ROI: $10.2M))
+    end
+
+    %% Apply Styles
+    classDef database fill:#f96,stroke:#333,stroke-width:2px,color:#000;
+    classDef script fill:#bbf,stroke:#333,stroke-width:2px,color:#000;
+    classDef metric fill:#9f9,stroke:#333,stroke-width:2px,color:#000;
+    classDef highlight fill:#f9f,stroke:#333,stroke-width:2px,color:#000;
+    classDef final fill:#ffd700,stroke:#333,stroke-width:4px,color:#000;
+
+    class A,D database;
+    class B,E,H script;
+    class F,G,K metric;
+    class I,J highlight;
+    class M final;
 ```
 
 ## Executive Summary

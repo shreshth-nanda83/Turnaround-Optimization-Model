@@ -164,7 +164,7 @@ $$\text{Gross Exposure} = \sum (\text{True Positive Delay Minutes}) \times \$75.
 ### 1. Prerequisites & Environment Setup
 Clone the repository and install dependencies:
 ```bash
-git clone https://github.com/shreshthnanda83-cloud/Turnaround-Optimization-Model.git
+git clone https://github.com/shreshth-nanda83/Turnaround-Optimization-Model.git
 cd Turnaround-Optimization-Model
 pip install -r requirements.txt
 ```

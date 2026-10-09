@@ -23,7 +23,7 @@ graph TD
     end
     
     subgraph Executive Financial Translation
-        J -->|Model Evaluation| K[Precision: 78% | Recall: 66%]
+        J -->|Model Evaluation| K["Precision: 78% | Recall: 66%"]
         K -->|FAA $75/min Benchmark| L[Financial Cost Impact]
         L -->|$51.2M Exposure| M((Potential ROI: $10.2M))
     end

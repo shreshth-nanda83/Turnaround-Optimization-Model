@@ -1,11 +1,5 @@
 # Commercial Fleet Operations & Turnaround Optimization Model
 
-![Project Walkthrough Video](assets/github_walkthrough.webp)
-
-[![Watch Full Narrated Video](https://img.shields.io/badge/🔊_Watch_Full_Video-2m12s_Narrated_Walkthrough-0284c7?style=for-the-badge&logo=quicktime)](assets/project_walkthrough.mp4)
-
-> 🎙️ **Narrated Video Walkthrough Available**: A full 2-minute-12-second walkthrough featuring AI voiceover narration explaining each stage of the project is available at [`assets/project_walkthrough.mp4`](assets/project_walkthrough.mp4).
-
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![SQLite 3](https://img.shields.io/badge/sqlite-3-003B57.svg)](https://www.sqlite.org/)
 [![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.0+-F7931E.svg)](https://scikit-learn.org/)
@@ -199,9 +193,6 @@ python src/train_model.py
 
 ```text
 Turnaround_Optimization_Model/
-├── assets/
-│   ├── github_walkthrough.webp     # Animated walkthrough video banner
-│   └── project_walkthrough.mp4     # Full 2m12s narrated video with AI voiceover
 ├── sql/
 │   └── turnaround_analytics.sql    # Analytical CTE & LAG() windowing engine
 ├── src/

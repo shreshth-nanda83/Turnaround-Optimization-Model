@@ -1,5 +1,23 @@
 # Commercial Fleet Operations & Turnaround Optimization Model
 
+## System Workflow & Architecture
+
+```mermaid
+graph TD
+    A[Raw Flight Data CSV] -->|Ingest & Clean| B(db_setup.py)
+    B -->|Format Timestamps & Index| C[(SQLite: operations.db)]
+    C -->|Calculate Ground Turnaround via LAG| D(turnaround_analytics.sql)
+    C -->|Extract Features| E(train_model.py)
+    D -->|Isolate Network Choke Points| F[Delay Propagation Metrics]
+    E -->|Random Forest Classifier| G[Predict Buffer Breaches]
+    G -->|FAA $75/min Benchmark| H[Financial Cost Impact]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#f96,stroke:#333,stroke-width:2px
+    style G fill:#9f9,stroke:#333,stroke-width:2px
+    style H fill:#9cf,stroke:#333,stroke-width:2px
+```
+
 ## Executive Summary
 
 ### Business Problem & Operational Context

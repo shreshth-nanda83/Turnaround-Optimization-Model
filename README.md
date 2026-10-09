@@ -1,5 +1,7 @@
 # Commercial Fleet Operations & Turnaround Optimization Model
 
+![Project Walkthrough Video](assets/github_walkthrough.webp)
+
 ## System Workflow & Architecture
 
 ```mermaid

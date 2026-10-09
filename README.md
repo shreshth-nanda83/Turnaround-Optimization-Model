@@ -1,8 +1,10 @@
 # Commercial Fleet Operations & Turnaround Optimization Model
 
-[![Watch Full Narrated Video](https://img.shields.io/badge/🎥_Watch_Full_Presentation-4m15s_Narrated_Video-0284c7?style=for-the-badge&logo=youtube)](Project_Presentation_Walkthrough.mp4)
+![Continuous Presentation Walkthrough Preview](presentation_preview.webp)
 
-> 🎙️ **Full Video Walkthrough Available**: A 4-minute-15-second high-definition (1080p) video walkthrough of the presentation deck with AI neural voiceover narration explaining the operational problem, SQL windowing architecture, ML models, and financial ROI is available directly in the repository at [`Project_Presentation_Walkthrough.mp4`](Project_Presentation_Walkthrough.mp4).
+[![Watch Full Narrated Video (4m 15s)](https://img.shields.io/badge/🎥_Watch_Full_Presentation-4m15s_with_Audio-0284c7?style=for-the-badge&logo=youtube)](Project_Presentation_Walkthrough.mp4)
+
+> 🎙️ **Narrated Video Available**: A complete 4-minute-15-second high-definition (1080p) video walkthrough of the presentation deck with AI neural voiceover narration is available at [`Project_Presentation_Walkthrough.mp4`](Project_Presentation_Walkthrough.mp4).
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![SQLite 3](https://img.shields.io/badge/sqlite-3-003B57.svg)](https://www.sqlite.org/)
@@ -202,6 +204,7 @@ Turnaround_Optimization_Model/
 ├── src/
 │   ├── db_setup.py                           # Telemetry ingestion & SQLite WAL builder
 │   └── train_model.py                        # ML classifier, threshold sweep & ROI calculator
+├── presentation_preview.webp                 # Continuous autoplaying presentation preview
 ├── Project_Presentation_Walkthrough.mp4      # Full 4m15s narrated 1080p video with AI voiceover
 ├── Workflow_Presentation.pptx                # 6-slide executive presentation deck
 ├── requirements.txt                          # Production environment dependencies

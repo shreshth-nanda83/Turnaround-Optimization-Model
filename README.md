@@ -1,5 +1,9 @@
 # Commercial Fleet Operations & Turnaround Optimization Model
 
+[![Watch Full Narrated Video](https://img.shields.io/badge/🎥_Watch_Full_Presentation-4m15s_Narrated_Video-0284c7?style=for-the-badge&logo=youtube)](Project_Presentation_Walkthrough.mp4)
+
+> 🎙️ **Full Video Walkthrough Available**: A 4-minute-15-second high-definition (1080p) video walkthrough of the presentation deck with AI neural voiceover narration explaining the operational problem, SQL windowing architecture, ML models, and financial ROI is available directly in the repository at [`Project_Presentation_Walkthrough.mp4`](Project_Presentation_Walkthrough.mp4).
+
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![SQLite 3](https://img.shields.io/badge/sqlite-3-003B57.svg)](https://www.sqlite.org/)
 [![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.0+-F7931E.svg)](https://scikit-learn.org/)
@@ -194,25 +198,24 @@ python src/train_model.py
 ```text
 Turnaround_Optimization_Model/
 ├── sql/
-│   └── turnaround_analytics.sql    # Analytical CTE & LAG() windowing engine
+│   └── turnaround_analytics.sql              # Analytical CTE & LAG() windowing engine
 ├── src/
-│   ├── db_setup.py                 # Telemetry ingestion & SQLite WAL builder
-│   └── train_model.py              # ML classifier, threshold sweep & ROI calculator
-├── Workflow_Presentation.pptx      # 8-slide executive presentation deck
-├── requirements.txt                # Production environment dependencies
-├── .gitignore                      # Git exclusion rules
-└── README.md                       # Architecture, metrics & execution guide
+│   ├── db_setup.py                           # Telemetry ingestion & SQLite WAL builder
+│   └── train_model.py                        # ML classifier, threshold sweep & ROI calculator
+├── Project_Presentation_Walkthrough.mp4      # Full 4m15s narrated 1080p video with AI voiceover
+├── Workflow_Presentation.pptx                # 6-slide executive presentation deck
+├── requirements.txt                          # Production environment dependencies
+├── .gitignore                                # Git exclusion rules
+└── README.md                                 # Architecture, metrics & execution guide
 ```
 
 ---
 
-## Executive Presentation Deck
-A PowerPoint presentation (`Workflow_Presentation.pptx`) is included in the root directory. It features an 8-slide executive dashboard covering:
-- **Slide 1**: Executive Overview & KPI Badges ($10.2M Savings, 441K Turns, 81.9% PR-AUC).
-- **Slide 2**: The Domino Effect & Buffer Exhaustion Breakdown.
-- **Slide 3**: Four-Stage Decoupled Engineering Architecture.
-- **Slide 4**: Aircraft Tail Sequencing & Hub Choke Points (`DTW`, `ORD`, `ATL`, `MIA`).
-- **Slide 5**: Random Forest Feature Importance Drivers & Class Balancing.
-- **Slide 6**: Out-of-Sample Holdout Scorecard & Confusion Matrix Heatmap.
-- **Slide 7**: Executive Financial Exposure Waterfall & ROI Quantification.
-- **Slide 8**: Station Control Center Dispatch Playbooks & Future Streaming Roadmap.
+## Executive Presentation Deck & Video Walkthrough
+A presentation deck ([`Workflow_Presentation.pptx`](Workflow_Presentation.pptx)) and a narrated video walkthrough ([`Project_Presentation_Walkthrough.mp4`](Project_Presentation_Walkthrough.mp4)) are included directly in the root directory:
+- **Slide 1: Executive Overview & KPI Badges**: High-level problem statement, $10.2M savings potential, 441K flight turns analyzed, and the $75/min FAA benchmark.
+- **Slide 2: The Domino Effect & Buffer Exhaustion**: Scheduled ground buffer mechanics, delay compounding across downstream rotations, and $51.2M gross cost exposure.
+- **Slide 3: End-to-End System Architecture**: Three-stage decoupled pipeline covering Python ingestion, SQLite B-Tree indexing, SQL LAG window sequencing, and Random Forest classification.
+- **Slide 4: Analytical SQL Engine & Hub Choke Points**: Database-level LAG window functions and identified bottlenecks at major hubs (`DTW 27.1%`, `PBI 26.1%`, `ATL 22.7%`, `ORD 22.0%`).
+- **Slide 5: Predictive ML Engine & Validation Scorecard**: Primary predictive drivers (`Inbound Delay 42.5%`, `Route Congestion 15.6%`), class-balanced Random Forest, and 78.4% precision scorecard on 88K holdout flights.
+- **Slide 6: Financial ROI & Operations Dispatch Playbook**: Delay cost accounting, 20% tactical mitigation business case ($10.2M net annual savings), and three OCC station dispatch playbooks.

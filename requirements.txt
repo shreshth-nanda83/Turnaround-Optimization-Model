@@ -4,3 +4,6 @@ scikit-learn
 xgboost
 sqlalchemy
 matplotlib
+seaborn
+joblib
+python-pptx

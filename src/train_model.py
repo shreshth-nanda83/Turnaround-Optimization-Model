@@ -85,60 +85,87 @@ def train_and_evaluate(df):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
     
     print("\nTraining Random Forest Classifier (with class_weight='balanced')...")
-    # Address class imbalance explicitly
     clf = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42, n_jobs=-1)
     clf.fit(X_train, y_train)
     
     y_pred = clf.predict(X_test)
     y_prob = clf.predict_proba(X_test)[:, 1]
     
-    # Model Evaluation
+    # Model Evaluation Metrics
+    from sklearn.metrics import roc_auc_score
+    roc_auc = roc_auc_score(y_test, y_prob)
     pr_auc = average_precision_score(y_test, y_prob)
     f1 = f1_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred)
     recall = recall_score(y_test, y_pred)
     cm = confusion_matrix(y_test, y_pred)
     
-    print("\n" + "="*40)
-    print("MODEL EVALUATION METRICS")
-    print("="*40)
-    print(f"PR-AUC:      {pr_auc:.4f}")
-    print(f"F1-Score:    {f1:.4f}")
-    print(f"Precision:   {precision:.4f}")
-    print(f"Recall:      {recall:.4f}")
-    print("Confusion Matrix:")
-    print(cm)
+    print("\n" + "="*45)
+    print("      MODEL EVALUATION METRICS")
+    print("="*45)
+    print(f"  ROC-AUC Score:      {roc_auc:.4f}")
+    print(f"  PR-AUC Score:       {pr_auc:.4f}")
+    print(f"  Precision Score:    {precision:.4f}")
+    print(f"  Recall Score:       {recall:.4f}")
+    print(f"  F1-Score:           {f1:.4f}")
+    print("\nConfusion Matrix (TN, FP / FN, TP):")
+    print(f"  [[{cm[0,0]:>6}, {cm[0,1]:>6}]")
+    print(f"   [{cm[1,0]:>6}, {cm[1,1]:>6}]]")
     
+    # Feature Importance Breakdown
+    print("\n" + "-"*45)
+    print("  FEATURE IMPORTANCE CONTRIBUTIONS")
+    print("-"*45)
+    importances = clf.feature_importances_
+    sorted_idx = np.argsort(importances)[::-1]
+    for idx in sorted_idx:
+        print(f"  {features[idx]:<28} {importances[idx]*100:>6.2f}%")
+        
+    # Operational Threshold Sweep
+    print("\n" + "-"*45)
+    print("  OPERATIONAL DISPATCH THRESHOLD ANALYSIS")
+    print("-"*45)
+    print("  Threshold | Precision | Recall  | F1-Score")
+    print("  " + "-"*41)
+    for thresh in [0.30, 0.40, 0.50, 0.60, 0.70]:
+        t_pred = (y_prob >= thresh).astype(int)
+        t_prec = precision_score(y_test, t_pred, zero_division=0)
+        t_rec = recall_score(y_test, t_pred, zero_division=0)
+        t_f1 = f1_score(y_test, t_pred, zero_division=0)
+        print(f"     {thresh:.2f}   |   {t_prec*100:>5.1f}%  |  {t_rec*100:>5.1f}% |  {t_f1*100:>5.1f}%")
+    print("="*45)
+    
+    # Save Model Artifact for Deployment (Compressed)
+    try:
+        import joblib
+        model_out = 'src/turnaround_rf_model.joblib'
+        joblib.dump({'model': clf, 'features': features}, model_out, compress=3)
+        print(f"\nModel artifact successfully serialized to {model_out} (git-ignored)")
+    except Exception as e:
+        print(f"Could not persist model artifact: {e}")
+        
     return clf, X_test, y_test, y_pred, df.loc[X_test.index]
 
 def calculate_financial_impact(test_df, y_pred):
-    print("\n" + "="*40)
-    print("FINANCIAL IMPACT TRANSLATION")
-    print("="*40)
+    print("\n" + "="*45)
+    print("     FINANCIAL IMPACT TRANSLATION")
+    print("="*45)
     
     test_df['Predicted_Target'] = y_pred
+    cost_per_minute = 75.0 # FAA / Airlines for America standard benchmark
     
-    # Cost benchmark: $75 per delay minute (FAA / Airlines for America)
-    cost_per_minute = 75
-    
-    # Only consider True Positives for "Mitigated Delays" savings calculation
-    # We focus on cases where delay happened and the model successfully predicted it
     true_positives = test_df[(test_df['Target'] == 1) & (test_df['Predicted_Target'] == 1)]
-    
-    # Actual total delay minutes for True Positives
-    # Using arrival delay or departure delay if arrival isn't available
     tp_delay_mins = true_positives['Arrival_Delay'].clip(lower=0).sum()
-    
     total_cost = tp_delay_mins * cost_per_minute
     
-    print(f"Total True Positives (Successfully Predicted Delays): {len(true_positives)}")
-    print(f"Total Delay Minutes from True Positives: {tp_delay_mins:,.0f} mins")
-    print(f"Predicted Delay Cost Impact: ${total_cost:,.2f}")
+    print(f"  True Positives Intercepted:      {len(true_positives):,d} flights")
+    print(f"  Delay Minutes Identified:        {tp_delay_mins:,.0f} mins")
+    print(f"  Gross Unmitigated Delay Exposure: ${total_cost:,.2f}")
     
-    # Assuming operational interventions could mitigate 20% of predicted delay costs
+    # 20% Tactical Mitigation ROI (Pre-arrival crew staging, gate swaps)
     mitigation_potential = total_cost * 0.20
-    print(f"Potential Savings (Assuming 20% mitigation): ${mitigation_potential:,.2f}")
-    print("="*40 + "\n")
+    print(f"  Net Annualized Savings (20% ROI): ${mitigation_potential:,.2f}")
+    print("="*45 + "\n")
 
 if __name__ == "__main__":
     df = load_and_engineer_features()

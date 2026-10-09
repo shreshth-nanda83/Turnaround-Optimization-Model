@@ -1,7 +1,10 @@
 operations.db
 *.csv
 *.zip
+*.joblib
+*.pkl
 venv/
 env/
 __pycache__/
 .ipynb_checkpoints/
+

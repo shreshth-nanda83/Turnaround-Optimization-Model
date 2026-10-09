@@ -133,6 +133,11 @@ def main():
     print(f"Loading data into SQLite database: {db_path}...")
     conn = sqlite3.connect(db_path)
     
+    # Enable WAL mode and performance pragmas
+    conn.execute('PRAGMA journal_mode = WAL;')
+    conn.execute('PRAGMA synchronous = NORMAL;')
+    conn.execute('PRAGMA cache_size = -64000;')  # 64MB cache
+    
     # Write to database (using chunksize if large, though to_sql handles reasonably well)
     df.to_sql('flight_operations', conn, if_exists='replace', index=False, chunksize=50000)
     
@@ -146,4 +151,7 @@ def main():
     print("Data ingestion and database creation completed successfully.")
 
 if __name__ == '__main__':
+    import time
+    t0 = time.time()
     main()
+    print(f"Total pipeline elapsed time: {time.time() - t0:.2f} seconds")

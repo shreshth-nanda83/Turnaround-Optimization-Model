@@ -1,6 +1,11 @@
--- Analytical SQL Pipeline for Turnaround Optimization
--- This pipeline calculates turnaround metrics, identifies cascading delays,
--- and aggregates delay statistics to isolate network choke points.
+-- ==============================================================================
+-- ANALYTICAL SQL PIPELINE: COMMERCIAL FLEET TURNAROUND OPTIMIZATION
+-- ==============================================================================
+-- Business Objective:
+--   1. Sequence physical aircraft rotations across the entire route network.
+--   2. Calculate exact ground turn durations, scheduled buffer slacks, and inbound latency.
+--   3. Detect and isolate cascading delay propagation choke points by airport and carrier.
+-- ==============================================================================
 
 -- 1. Create a Common Table Expression (CTE) to sequence flights by aircraft
 WITH FlightSequence AS (
@@ -16,8 +21,8 @@ WITH FlightSequence AS (
         Scheduled_Arrival,
         Actual_Arrival,
         Arrival_Delay,
-        -- Use LAG() window function partitioned by aircraft tail number and ordered by scheduled departure 
-        -- to calculate prior arrival time, prior scheduled arrival time, and prior destination.
+        -- Use LAG() window function partitioned by physical aircraft tail number
+        -- and ordered by scheduled departure to calculate prior arrival metrics.
         LAG(Actual_Arrival) OVER (
             PARTITION BY Tail_Number 
             ORDER BY Scheduled_Departure
@@ -33,31 +38,32 @@ WITH FlightSequence AS (
     FROM flight_operations
 ),
 
--- 2. Calculate Ground Turnaround Times and Delays
+-- 2. Calculate Ground Turnaround Times and Inbound Delays
 TurnaroundMetrics AS (
     SELECT 
         *,
-        -- Ground Turnaround Time: Actual time spent on ground (minutes)
+        -- Actual Ground Turnaround Time (in minutes)
         (julianday(Actual_Departure) - julianday(Prior_Actual_Arrival)) * 1440.0 AS Actual_Turnaround_Mins,
-        -- Scheduled Turnaround Time
+        -- Scheduled Turnaround Time allocated in airline timetable
         (julianday(Scheduled_Departure) - julianday(Prior_Scheduled_Arrival)) * 1440.0 AS Scheduled_Turnaround_Mins,
-        -- Inbound Delay (Delay of the aircraft arriving from the prior flight)
+        -- Inbound Delay of the incoming flight
         (julianday(Prior_Actual_Arrival) - julianday(Prior_Scheduled_Arrival)) * 1440.0 AS Inbound_Delay_Mins
     FROM FlightSequence
-    -- Ensure logical continuity: prior destination must be current origin
+    -- Enforce physical aircraft rotation continuity: prior arrival airport must match current departure
     WHERE Prior_Dest = Origin 
       AND Prior_Actual_Arrival IS NOT NULL
-      -- Filter out overnight stays and long maintenance blocks (e.g. > 12 hours)
+      -- Filter out overnight hangaring and multi-day maintenance blocks (30 mins <= turn <= 12 hours)
       AND (julianday(Scheduled_Departure) - julianday(Prior_Scheduled_Arrival)) * 1440.0 BETWEEN 30 AND 720
 ),
 
--- 3. Determine Ground Buffer Delta and Cascading Delays
+-- 3. Determine Ground Buffer Delta and Cascading Delay Flags
 CascadingDelays AS (
     SELECT
         *,
-        -- Ground Buffer Delta = Scheduled Turnaround - Actual Turnaround
+        -- Buffer Delta: Positive = scheduled buffer surplus; Negative = buffer deficit
         Scheduled_Turnaround_Mins - Actual_Turnaround_Mins AS Ground_Buffer_Delta,
-        -- Flag cascading delays: Inbound delay > 15 mins DIRECTLY propagates to a Departure delay > 15 mins
+        -- Cascading Delay Indicator:
+        -- Inbound delay > 15 mins directly triggers Departure delay > 15 mins
         CASE 
             WHEN Inbound_Delay_Mins > 15 AND Departure_Delay > 15 THEN 1 
             ELSE 0 
@@ -65,15 +71,14 @@ CascadingDelays AS (
     FROM TurnaroundMetrics
 )
 
--- 4. Aggregate delay metrics by Origin Airport and Carrier
--- Isolating network choke points
+-- 4. Aggregate Network Choke Points by Origin Airport and Carrier
 SELECT 
-    Origin,
-    Carrier,
+    Origin AS Airport_Code,
+    Carrier AS Airline_Code,
     COUNT(*) AS Total_Turnarounds,
-    ROUND(AVG(Scheduled_Turnaround_Mins), 2) AS Avg_Scheduled_Turnaround_Mins,
-    ROUND(AVG(Actual_Turnaround_Mins), 2) AS Avg_Actual_Turnaround_Mins,
-    ROUND(AVG(Inbound_Delay_Mins), 2) AS Avg_Inbound_Delay_Mins,
+    ROUND(AVG(Scheduled_Turnaround_Mins), 1) AS Avg_Scheduled_Turn_Mins,
+    ROUND(AVG(Actual_Turnaround_Mins), 1) AS Avg_Actual_Turn_Mins,
+    ROUND(AVG(Inbound_Delay_Mins), 1) AS Avg_Inbound_Delay_Mins,
     SUM(Is_Cascading_Delay) AS Total_Cascading_Delays,
     ROUND(CAST(SUM(Is_Cascading_Delay) AS FLOAT) / COUNT(*) * 100.0, 2) AS Pct_Cascading_Delay
 FROM CascadingDelays

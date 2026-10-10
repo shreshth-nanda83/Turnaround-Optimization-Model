@@ -34,7 +34,14 @@ WITH FlightSequence AS (
         LAG(Dest) OVER (
             PARTITION BY Tail_Number 
             ORDER BY Scheduled_Departure
-        ) AS Prior_Dest
+        ) AS Prior_Dest,
+        -- Calculate remaining flight legs scheduled for this physical aircraft today
+        -- Measures downstream network delay exposure if current turnaround breaches
+        COUNT(*) OVER (
+            PARTITION BY Tail_Number, FlightDate 
+            ORDER BY Scheduled_Departure 
+            ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+        ) - 1 AS Remaining_Legs_Today
     FROM flight_operations
 ),
 

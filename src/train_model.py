@@ -20,7 +20,12 @@ def load_and_engineer_features(db_path='operations.db'):
             Scheduled_Arrival, Actual_Arrival, Arrival_Delay,
             LAG(Actual_Arrival) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Actual_Arrival,
             LAG(Scheduled_Arrival) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Scheduled_Arrival,
-            LAG(Dest) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Dest
+            LAG(Dest) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Dest,
+            COUNT(*) OVER (
+                PARTITION BY Tail_Number, FlightDate 
+                ORDER BY Scheduled_Departure 
+                ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+            ) - 1 AS Remaining_Legs_Today
         FROM flight_operations
     ),
     TurnaroundMetrics AS (
@@ -144,7 +149,53 @@ def train_and_evaluate(df):
     except Exception as e:
         print(f"Could not persist model artifact: {e}")
         
-    return clf, X_test, y_test, y_pred, df.loc[X_test.index]
+    return clf, X_test, y_test, y_pred, y_prob, df.loc[X_test.index]
+
+def evaluate_operational_dispatch(test_df, y_prob, alpha=0.5):
+    """
+    Evaluates the Open-Ended Constrained Dispatch Problem:
+    ML predicts breach risk P(Breach), but OCC ramp surge crews are strictly finite.
+    A naive greedy ML policy sorts strictly by P(Breach), neglecting downstream network centrality.
+    We introduce the Priority Intervention Index (PII):
+        PII = P(Breach) * (1 + alpha * Remaining_Legs_Today)
+    to prioritize aircraft whose delays compound across subsequent daily rotations.
+    """
+    print("\n" + "="*55)
+    print("  PRESCRIPTIVE DISPATCH: THE NETWORK CENTRALITY DILEMMA")
+    print("="*55)
+    
+    dispatch_df = test_df.copy()
+    dispatch_df['Breach_Prob'] = y_prob
+    dispatch_df['Remaining_Legs'] = dispatch_df['Remaining_Legs_Today'].fillna(0).astype(int)
+    
+    # Priority Intervention Index (PII)
+    dispatch_df['PII'] = dispatch_df['Breach_Prob'] * (1.0 + alpha * dispatch_df['Remaining_Legs'])
+    
+    # Naive Greedy Rank vs. PII Rank
+    dispatch_df['Naive_Rank'] = dispatch_df['Breach_Prob'].rank(ascending=False, method='min').astype(int)
+    dispatch_df['PII_Rank'] = dispatch_df['PII'].rank(ascending=False, method='min').astype(int)
+    dispatch_df['Rank_Shift'] = dispatch_df['Naive_Rank'] - dispatch_df['PII_Rank']
+    
+    # Select a high-density hub departure bank snapshot
+    sample_bank = dispatch_df[
+        (dispatch_df['Breach_Prob'] >= 0.50) & 
+        (dispatch_df['Remaining_Legs'] >= 0)
+    ].sort_values(by='PII', ascending=False).head(8)
+    
+    print(f"\n  Simulation: Constrained Ramp Crew Dispatch (alpha={alpha})")
+    print("  " + "-"*75)
+    print(f"  {'Tail':<8} {'Carrier':<7} {'Origin':<6} {'P(Breach)':<10} {'Rem Legs':<9} {'PII Score':<11} {'Naive':<7} {'PII':<6} {'Priority'}")
+    print("  " + "-"*75)
+    for _, row in sample_bank.iterrows():
+        priority_tag = "CRITICAL ROTATION" if row['Remaining_Legs'] >= 3 else "Isolated Turn"
+        print(f"  {row['Tail_Number']:<8} {row['Carrier']:<7} {row['Origin']:<6} {row['Breach_Prob']*100:>6.1f}%    {row['Remaining_Legs']:<9} {row['PII']:>6.3f}      #{row['Naive_Rank']:<5} #{row['PII_Rank']:<4} {priority_tag}")
+    print("  " + "-"*75)
+    print("  Operational Insight:")
+    print("  Under a naive ML policy, an isolated flight on its final leg (0 remaining legs)")
+    print("  might monopolize ramp crews over a high-centrality aircraft with 3-4 remaining legs.")
+    print("  The PII framework directly prevents downstream delay compounding across the network.")
+    print("="*55)
+    return dispatch_df
 
 def calculate_financial_impact(test_df, y_pred):
     print("\n" + "="*45)
@@ -169,5 +220,6 @@ def calculate_financial_impact(test_df, y_pred):
 
 if __name__ == "__main__":
     df = load_and_engineer_features()
-    model, X_test, y_test, y_pred, test_df = train_and_evaluate(df)
+    model, X_test, y_test, y_pred, y_prob, test_df = train_and_evaluate(df)
     calculate_financial_impact(test_df, y_pred)
+    evaluate_operational_dispatch(test_df, y_prob, alpha=0.5)

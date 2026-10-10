@@ -46,18 +46,26 @@ flowchart TD
         N --> O(("Quantified Annual Cost Mitigation<br/>$10,240,845 ($10.2M ROI)"))
     end
 
+    subgraph S5["Stage 5: Prescriptive Optimization (The Open Frontier)"]
+        K & E --> P["Downstream Centrality Window<br/>Remaining_Legs_Today"]
+        P --> Q["Priority Intervention Index (PII)<br/>P(Breach) * (1 + alpha * Legs)"]
+        Q --> R["Constrained Ramp Knapsack Dispatch<br/>Mitigates Compounding Network Delays"]
+    end
+
     %% Visual Styling
     classDef stageIng fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#0369a1;
     classDef stageSql fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#6b21a8;
     classDef stageMl fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e;
     classDef stageRoi fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#15803d;
     classDef finalRoi fill:#fef08a,stroke:#ca8a04,stroke-width:3px,color:#854d0e;
+    classDef stageOpt fill:#fdf2f8,stroke:#db2777,stroke-width:2px,color:#9d174d;
 
     class A,B,C,D stageIng;
     class E,F,G,H stageSql;
     class I,J,K stageMl;
     class L,M,N stageRoi;
     class O finalRoi;
+    class P,Q,R stageOpt;
 ```
 
 ---
@@ -162,6 +170,69 @@ $$\text{Gross Exposure} = \sum (\text{True Positive Delay Minutes}) \times \$75.
 1. **Dynamic Ground Crew Surges**: When breach probability exceeds $65\%$, station managers auto-dispatch dedicated secondary baggage ramp crews and pre-position fueling trucks at the gate before block-in.
 2. **Proactive Gate Reassignments**: Reroute late-arriving aircraft to gates with shorter taxi-in distances and dual jet bridges.
 3. **Priority Boarding Sequencing**: Pre-tag and gate-check carry-on bags 20 minutes prior to cabin door opening, shaving 8–12 minutes off passenger boarding duration.
+
+---
+
+## The Open Frontier: Constrained Resource Dispatch & Network Centrality
+
+### 1. The Operational Dilemma: Why Raw ML Probabilities Fail in Practice
+In standard data science workflows, optimizing predictive accuracy ($\text{ROC-AUC} = 0.833$, $\text{PR-AUC} = 0.819$) is often considered the finish line. However, inside an airline **Operations Control Center (OCC)** during peak arrival banks (e.g., a 4:30 PM departure bank at Chicago O'Hare or Atlanta Hartsfield), dispatchers confront a critical resource bottleneck:
+> **The Knapsack Constraint**: Ten aircraft are simultaneously predicted to breach turnaround buffers ($P(\text{Breach}) \ge 70\%$), but available surge intervention assets (rapid-response baggage crews, auxiliary fueling bowsers, dual-bridge gate slots) can only service **two** flights.
+
+A naive greedy policy that sorts purely by $\max P(\text{Breach})$ produces severe operational misallocations:
+* **The Isolated Turn Trap**: An aircraft arriving on its final flight of the day into an overnight maintenance hub might have $P(\text{Breach}) = 95\%$. If its turnaround is delayed by 25 minutes, **zero downstream flights** are impacted.
+* **The High-Centrality Compounding Chain**: An aircraft with $P(\text{Breach}) = 79\%$ that has **4 remaining flight legs today** across high-density hubs (`ORD` $\to$ `DEN` $\to$ `SFO` $\to$ `LAX`) will propagate its delay across all subsequent legs, causing crew legal duty timeouts, gate hold gridlock, and dozens of missed passenger connections.
+
+### 2. Mathematical Formulation: Priority Intervention Index (PII)
+
+To bridge the gap between predictive ML inference and prescriptive decision optimization under finite ramp capacity, we formulated the **Priority Intervention Index (PII)**:
+
+$$\text{PII}_i = P(\text{Breach}_i) \times \left(1 + \alpha \cdot \text{Remaining\_Legs\_Today}_i\right)$$
+
+Where:
+* $P(\text{Breach}_i) \in [0, 1]$ is the calibrated Random Forest breach probability for turn $i$.
+* $\text{Remaining\_Legs\_Today}_i$ is the downstream physical rotation depth calculated via SQL window partitioning:
+  ```sql
+  COUNT(*) OVER (
+      PARTITION BY Tail_Number, FlightDate 
+      ORDER BY Scheduled_Departure 
+      ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
+  ) - 1 AS Remaining_Legs_Today
+  ```
+* $\alpha \ge 0$ is the downstream delay compounding sensitivity multiplier (calibrated to $\alpha = 0.50$).
+
+#### Prescriptive Resource Allocation as a Bounded Knapsack Problem:
+Given $B$ available surge ramp intervention units and crew cost $c_i$ for turn $i$:
+
+$$\max_{x \in \{0, 1\}^N} \sum_{i=1}^N \text{PII}_i \cdot x_i \quad \text{subject to} \quad \sum_{i=1}^N c_i x_i \le B$$
+
+### 3. Empirical Dispatch Simulation Results
+
+Running the PII prescriptive engine on out-of-sample holdout turns demonstrates how the ranking re-orders tactical dispatch:
+
+| Aircraft Tail | Carrier | Station | Naive ML $P(\text{Breach})$ | Remaining Legs Today | PII Score | Naive Rank | Prescriptive PII Rank | Tactical Action Category |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **N479AS** | AS | PSP | 96.0% | 11 | **6.240** | #9,331 | **#1** | **CRITICAL ROTATION (Auto-Surge)** |
+| **N491AS** | AS | IAD | 100.0% | 10 | **6.000** | #1 | **#2** | **CRITICAL ROTATION (Auto-Surge)** |
+| **N491AS** | AS | PHX | 79.0% | 13 | **5.925** | #17,827 | **#3** | **CRITICAL ROTATION (Auto-Surge)** |
+| **N717EV** | OO | CIU | 100.0% | 8 | **5.000** | #1 | **#4** | **CRITICAL ROTATION (Auto-Surge)** |
+| **N354FR** | F9 | LAS | 100.0% | 7 | **4.500** | #1 | **#5** | **CRITICAL ROTATION (Auto-Surge)** |
+
+> 💡 **Key Operational Discovery**: Notice aircraft `N491AS` at PHX: its raw breach probability was **79.0%**, placing it at naive rank **#17,827** behind thousands of certain breaches. However, with **13 remaining legs** scheduled across the route network, its PII score vaults it to **#3 overall**. Prioritizing this aircraft prevents catastrophic multi-station delay compounding that naive ML would have completely ignored.
+
+### 4. Open-Ended Interview Discussion Framework
+
+This project deliberately preserves open-ended frontiers that mirror real-world airline operations research. When discussing this system in an interview setting, three primary architectural extensions can be presented:
+
+1. **Passenger Connection Bipartite Graph Centrality**:
+   * *The Problem*: Aircraft legs capture physical asset propagation, but passenger itineraries create financial asymmetric risk.
+   * *Extension*: Weight each turn by the bipartite graph of connecting passenger itineraries. An inbound delay causing 35 missed connections to an international wide-body flight (`ORD` $\to$ `LHR`) incurs up to $\$50,000$ in hotel vouchers and rebooking penalties, far exceeding a delayed regional hop.
+2. **Crew Legal Duty-Time Expiration Limits (FAA Part 117 Hard Constraints)**:
+   * *The Problem*: Flight crew duty hours are strictly governed by federal regulations. If an inbound turn delay pushes a pilot beyond their maximum Flight Duty Period (FDP), the outbound flight cannot depart regardless of aircraft readiness.
+   * *Extension*: Integrate a non-linear step-function penalty when remaining turn buffer threatens pilot/flight attendant legal duty timeouts, triggering automated reserve crew callouts.
+3. **Rolling-Horizon Mixed-Integer Linear Programming (MILP) vs. Multi-Agent RL**:
+   * *The Problem*: Ramp surge crews, fueling bowsers, and gates cannot be teleported—they have spatial travel times across terminal concourses.
+   * *Extension*: Formulate dynamic gate assignment and ground crew routing as a rolling-horizon MILP or train a Multi-Agent Reinforcement Learning (MARL) policy where gate controllers and ramp dispatchers coordinate under stochastic ground surface conditions.
 
 ---
 

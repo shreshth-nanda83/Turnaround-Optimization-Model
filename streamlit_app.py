@@ -60,60 +60,82 @@ st.markdown("""
 @st.cache_data
 def load_data():
     bi_feed_path = 'dashboards/turnaround_bi_feed.csv'
+    hub_feed_path = 'dashboards/hub_analytics.csv'
+
     if os.path.exists(bi_feed_path):
         df_flights = pd.read_csv(bi_feed_path)
+    elif os.path.exists('operations.db'):
+        try:
+            conn = sqlite3.connect('operations.db')
+            df_flights = pd.read_sql_query("SELECT * FROM flight_operations LIMIT 10000", conn)
+            conn.close()
+        except Exception:
+            df_flights = pd.DataFrame()
     else:
-        # Fallback query from operations.db if CSV missing
-        conn = sqlite3.connect('operations.db')
-        df_flights = pd.read_sql_query("SELECT * FROM flight_operations LIMIT 10000", conn)
-        conn.close()
+        df_flights = pd.DataFrame()
 
-    # Load Hub Aggregated Analytics
-    conn = sqlite3.connect('operations.db')
-    hub_sql = """
-    WITH FlightSequence AS (
-        SELECT 
-            Carrier, Origin, Dest, Scheduled_Departure, Actual_Departure,
-            Departure_Delay, Scheduled_Arrival, Actual_Arrival, Arrival_Delay,
-            LAG(Actual_Arrival) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Actual_Arrival,
-            LAG(Scheduled_Arrival) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Scheduled_Arrival,
-            LAG(Dest) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Dest
-        FROM flight_operations
-    ),
-    TurnaroundMetrics AS (
-        SELECT 
-            *,
-            (julianday(Actual_Departure) - julianday(Prior_Actual_Arrival)) * 1440.0 AS Actual_Turnaround_Mins,
-            (julianday(Scheduled_Departure) - julianday(Prior_Scheduled_Arrival)) * 1440.0 AS Scheduled_Turnaround_Mins,
-            (julianday(Prior_Actual_Arrival) - julianday(Prior_Scheduled_Arrival)) * 1440.0 AS Inbound_Delay_Mins
-        FROM FlightSequence
-        WHERE Prior_Dest = Origin 
-          AND Prior_Actual_Arrival IS NOT NULL
-          AND (julianday(Scheduled_Departure) - julianday(Prior_Scheduled_Arrival)) * 1440.0 BETWEEN 30 AND 720
-    ),
-    CascadingDelays AS (
-        SELECT
-            *,
-            Scheduled_Turnaround_Mins - Actual_Turnaround_Mins AS Ground_Buffer_Delta,
-            CASE WHEN Inbound_Delay_Mins > 15 AND Departure_Delay > 15 THEN 1 ELSE 0 END AS Is_Cascading_Delay
-        FROM TurnaroundMetrics
-    )
-    SELECT 
-        Origin AS Airport_Code,
-        Carrier AS Airline_Code,
-        COUNT(*) AS Total_Turns,
-        ROUND(AVG(Scheduled_Turnaround_Mins), 1) AS Avg_Scheduled_Turn,
-        ROUND(AVG(Actual_Turnaround_Mins), 1) AS Avg_Actual_Turn,
-        ROUND(AVG(Inbound_Delay_Mins), 1) AS Avg_Inbound_Delay,
-        ROUND(AVG(Ground_Buffer_Delta), 1) AS Avg_Buffer_Delta,
-        ROUND(CAST(SUM(Is_Cascading_Delay) AS FLOAT) / COUNT(*) * 100.0, 2) AS Cascading_Delay_Pct
-    FROM CascadingDelays
-    GROUP BY Origin, Carrier
-    HAVING Total_Turns >= 50
-    ORDER BY Cascading_Delay_Pct DESC;
-    """
-    df_hubs = pd.read_sql_query(hub_sql, conn)
-    conn.close()
+    if os.path.exists(hub_feed_path):
+        df_hubs = pd.read_csv(hub_feed_path)
+        rename_map = {
+            'Total_Turnarounds': 'Total_Turns',
+            'Avg_Scheduled_Turn_Mins': 'Avg_Scheduled_Turn',
+            'Avg_Actual_Turn_Mins': 'Avg_Actual_Turn',
+            'Avg_Inbound_Delay_Mins': 'Avg_Inbound_Delay',
+            'Avg_Buffer_Delta_Mins': 'Avg_Buffer_Delta',
+            'Pct_Cascading_Delay': 'Cascading_Delay_Pct'
+        }
+        df_hubs.rename(columns=rename_map, inplace=True)
+    elif os.path.exists('operations.db'):
+        try:
+            conn = sqlite3.connect('operations.db')
+            hub_sql = """
+            WITH FlightSequence AS (
+                SELECT 
+                    Carrier, Origin, Dest, Scheduled_Departure, Actual_Departure,
+                    Departure_Delay, Scheduled_Arrival, Actual_Arrival, Arrival_Delay,
+                    LAG(Actual_Arrival) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Actual_Arrival,
+                    LAG(Scheduled_Arrival) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Scheduled_Arrival,
+                    LAG(Dest) OVER (PARTITION BY Tail_Number ORDER BY Scheduled_Departure) AS Prior_Dest
+                FROM flight_operations
+            ),
+            TurnaroundMetrics AS (
+                SELECT 
+                    *,
+                    (julianday(Actual_Departure) - julianday(Prior_Actual_Arrival)) * 1440.0 AS Actual_Turnaround_Mins,
+                    (julianday(Scheduled_Departure) - julianday(Prior_Scheduled_Arrival)) * 1440.0 AS Scheduled_Turnaround_Mins,
+                    (julianday(Prior_Actual_Arrival) - julianday(Prior_Scheduled_Arrival)) * 1440.0 AS Inbound_Delay_Mins
+                FROM FlightSequence
+                WHERE Prior_Dest = Origin 
+                  AND Prior_Actual_Arrival IS NOT NULL
+                  AND (julianday(Scheduled_Departure) - julianday(Prior_Scheduled_Arrival)) * 1440.0 BETWEEN 30 AND 720
+            ),
+            CascadingDelays AS (
+                SELECT
+                    *,
+                    Scheduled_Turnaround_Mins - Actual_Turnaround_Mins AS Ground_Buffer_Delta,
+                    CASE WHEN Inbound_Delay_Mins > 15 AND Departure_Delay > 15 THEN 1 ELSE 0 END AS Is_Cascading_Delay
+                FROM TurnaroundMetrics
+            )
+            SELECT 
+                Origin AS Airport_Code,
+                Carrier AS Airline_Code,
+                COUNT(*) AS Total_Turns,
+                ROUND(AVG(Scheduled_Turnaround_Mins), 1) AS Avg_Scheduled_Turn,
+                ROUND(AVG(Actual_Turnaround_Mins), 1) AS Avg_Actual_Turn,
+                ROUND(AVG(Inbound_Delay_Mins), 1) AS Avg_Inbound_Delay,
+                ROUND(AVG(Ground_Buffer_Delta), 1) AS Avg_Buffer_Delta,
+                ROUND(CAST(SUM(Is_Cascading_Delay) AS FLOAT) / COUNT(*) * 100.0, 2) AS Cascading_Delay_Pct
+            FROM CascadingDelays
+            GROUP BY Origin, Carrier
+            HAVING Total_Turns >= 50
+            ORDER BY Cascading_Delay_Pct DESC;
+            """
+            df_hubs = pd.read_sql_query(hub_sql, conn)
+            conn.close()
+        except Exception:
+            df_hubs = pd.DataFrame()
+    else:
+        df_hubs = pd.DataFrame()
 
     return df_flights, df_hubs
 

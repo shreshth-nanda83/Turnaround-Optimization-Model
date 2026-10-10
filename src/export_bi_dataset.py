@@ -147,10 +147,14 @@ def export_data():
     os.makedirs('dashboards', exist_ok=True)
     os.makedirs('dashboard', exist_ok=True)
     
-    # Save CSV for Power BI Desktop
+    # Save CSV for Power BI Desktop & Streamlit Cloud
     bi_csv_path = 'dashboards/turnaround_bi_feed.csv'
     flight_df.to_csv(bi_csv_path, index=False)
     print(f"Saved Power BI dataset to {bi_csv_path} ({os.path.getsize(bi_csv_path) / (1024*1024):.2f} MB)")
+    
+    hub_csv_path = 'dashboards/hub_analytics.csv'
+    hub_df.to_csv(hub_csv_path, index=False)
+    print(f"Saved Hub Analytics dataset to {hub_csv_path} ({os.path.getsize(hub_csv_path) / 1024:.2f} KB)")
     
     # Save concise JSON feed for the standalone interactive Web Dashboard
     # Grouped data + top 300 active bank flights for instant sub-millisecond client-side interactivity

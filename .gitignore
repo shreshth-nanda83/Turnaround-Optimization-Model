@@ -1,5 +1,6 @@
 operations.db
 *.csv
+!dashboards/*.csv
 *.zip
 *.joblib
 *.pkl

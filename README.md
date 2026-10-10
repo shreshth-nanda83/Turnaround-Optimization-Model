@@ -9,6 +9,8 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![SQLite 3](https://img.shields.io/badge/sqlite-3-003B57.svg)](https://www.sqlite.org/)
 [![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.0+-F7931E.svg)](https://scikit-learn.org/)
+[![Interactive OCC Dashboard](https://img.shields.io/badge/🖥️_Interactive_OCC_Dashboard-Live_in_Repo-0284c7?style=for-the-badge)](dashboard/index.html)
+[![Power BI Ready Feed](https://img.shields.io/badge/📊_Power_BI_Ready-Dataset_%2B_DAX-f59e0b?style=for-the-badge)](dashboards/power_bi_dax_measures.md)
 [![FAA Benchmark](https://img.shields.io/badge/FAA%20Cost%20Standard-$75%2Fmin-red.svg)](https://www.faa.gov/)
 [![Potential Cost Savings](https://img.shields.io/badge/Annual%20Savings-$10.24M-success.svg)](#financial-translation--roi-dashboard)
 
@@ -236,6 +238,35 @@ This project deliberately preserves open-ended frontiers that mirror real-world 
 
 ---
 
+## Interactive OCC Mission Control & Power BI Dashboard
+
+To provide airline station managers and executive leadership with real-time operational decision support, the project includes both an **interactive zero-install OCC Mission Control web application** and an **enterprise Power BI Desktop star-schema deployment pack**:
+
+### 1. OCC Mission Control Dashboard (`dashboard/index.html`)
+A high-performance dark-mode cockpit interface featuring live telemetry, interactive threshold sweeps, and dynamic flight re-ranking:
+
+![OCC Hub Analytics & Choke Points](dashboard/dashboard_hub_preview.png)
+
+* **Tab 1: OCC Network Health & Hub Choke Points**: Interactive airport slicers (`ORD`, `ATL`, `DTW`, `MIA`, etc.), carrier filters, and dual-axis charts comparing scheduled vs. actual turnaround durations to isolate station buffer deficits.
+* **Tab 2: Prescriptive Tactical Dispatch & PII Queue**: Live flight board displaying raw breach probability $P(\text{Breach})$ alongside downstream remaining legs and dynamic **Priority Intervention Index (PII)** re-rankings:
+
+![Prescriptive Dispatch Queue & PII Rank Shifts](dashboard/dashboard_dispatch_preview.png)
+
+* **Tab 3: Financial ROI & Cost Avoidance Simulator**: What-if sensitivity parameter sliders for the FAA delay cost benchmark ($\$50 - \$120/\text{min}$) and ground crew tactical recovery rate ($10\% - 35\%$), updating annualized cost avoidance metrics in real-time.
+
+#### How to Launch the Dashboard:
+Simply open [`dashboard/index.html`](dashboard/index.html) directly in any modern web browser (Edge, Chrome, Safari, Firefox). No backend server, local Node.js, or cloud login required!
+
+---
+
+### 2. Microsoft Power BI Desktop Deployment Pack (`dashboards/`)
+For organizations standardizing on Microsoft Fabric or Power BI Desktop:
+* **Pre-Aggregated Data Feed**: [`dashboards/turnaround_bi_feed.csv`](dashboards/turnaround_bi_feed.csv) (25,000+ representative operational turns with computed PII scores and tail rotations).
+* **Enterprise DAX Measure Dictionary**: [`dashboards/power_bi_dax_measures.md`](dashboards/power_bi_dax_measures.md) containing verified DAX formulas for dynamic what-if sliders, buffer breach rates, and financial cost translations.
+* **ETL Ingestion Pipeline**: Execute `python src/export_bi_dataset.py` to regenerate refreshed feeds from SQLite.
+
+---
+
 ## Quickstart & Reproducibility Guide
 
 ### 1. Prerequisites & Environment Setup
@@ -270,11 +301,20 @@ python src/train_model.py
 
 ```text
 Turnaround_Optimization_Model/
+├── dashboard/
+│   ├── index.html                            # Interactive OCC Mission Control Web Dashboard
+│   ├── data.js                               # Client-side analytics & flight telemetry feed
+│   ├── dashboard_hub_preview.png             # Tab 1 preview: Hub Choke Points & Network Health
+│   └── dashboard_dispatch_preview.png        # Tab 2 preview: Prescriptive PII Dispatch Board
+├── dashboards/
+│   ├── turnaround_bi_feed.csv                # Power BI Desktop pre-aggregated dataset (2.4 MB)
+│   └── power_bi_dax_measures.md              # Star schema architecture & enterprise DAX library
 ├── sql/
 │   └── turnaround_analytics.sql              # Analytical CTE & LAG() windowing engine
 ├── src/
 │   ├── db_setup.py                           # Telemetry ingestion & SQLite WAL builder
-│   └── train_model.py                        # ML classifier, threshold sweep & ROI calculator
+│   ├── train_model.py                        # ML classifier, threshold sweep & ROI calculator
+│   └── export_bi_dataset.py                  # Power BI and web dashboard dataset exporter
 ├── presentation_preview.webp                 # Continuous autoplaying presentation preview
 ├── Project_Presentation_Walkthrough.mp4      # Full 4m15s narrated 1080p video with AI voiceover
 ├── Workflow_Presentation.pptx                # 6-slide executive presentation deck

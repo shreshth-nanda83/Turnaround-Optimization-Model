@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commercial Fleet Operations Control Center (OCC) | Turnaround Optimization</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #070b14;
+            --bg-secondary: #0d1527;
+            --bg-card: rgba(18, 28, 51, 0.75);
+            --bg-card-hover: rgba(26, 39, 70, 0.85);
+            --border-color: rgba(56, 189, 248, 0.15);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #38bdf8;
+            --accent-blue: #3b82f6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-purple: #a855f7;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.5;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(14, 165, 233, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.06) 0%, transparent 40%);
+        }
+
+        /* Top Operations Status Bar */
+        .top-navbar {
+            background: rgba(13, 21, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.85rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .brand-cluster {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(2, 132, 199, 0.5);
+            font-size: 1.25rem;
+        }
+
+        .brand-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(to right, #ffffff, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+        }
+
+        .status-cluster {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--accent-emerald);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-emerald);
+            box-shadow: 0 0 8px var(--accent-emerald);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        /* Container Layout */
+        .main-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-cyan);
+            border-bottom-color: var(--accent-cyan);
+            background: rgba(56, 189, 248, 0.05);
+            border-radius: 6px 6px 0 0;
+        }
+
+        /* Slicer Bar */
+        .slicer-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            align-items: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .slicer-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .slicer-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+        }
+
+        .slicer-select {
+            background: #09101f;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 0.4rem 0.85rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: var(--font-sans);
+            outline: none;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .slicer-select:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .range-slider {
+            -webkit-appearance: none;
+            width: 140px;
+            height: 6px;
+            border-radius: 3px;
+            background: #1e293b;
+            outline: none;
+        }
+
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 6px var(--accent-cyan);
+        }
+
+        .slider-val {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent-cyan);
+            font-weight: 600;
+            min-width: 45px;
+        }
+
+        /* KPI Metric Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            transition: transform 0.2s, border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-color);
+            background: var(--bg-card-hover);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .kpi-cyan::before { background: var(--accent-cyan); }
+        .kpi-emerald::before { background: var(--accent-emerald); }
+        .kpi-amber::before { background: var(--accent-amber); }
+        .kpi-rose::before { background: var(--accent-rose); }
+        .kpi-purple::before { background: var(--accent-purple); }
+
+        .kpi-title {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .kpi-value {
+            font-size: 1.85rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+
+        .kpi-subtext {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        /* Main Content Grid */
+        .content-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .content-grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .panel-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Table Styling */
+        .table-responsive {
+            overflow-x: auto;
+            max-height: 520px;
+        }
+
+        .modern-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        .modern-table th {
+            background: rgba(15, 23, 42, 0.8);
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .modern-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+        }
+
+        .modern-table tr:hover {
+            background: rgba(56, 189, 248, 0.04);
+        }
+
+        /* Badges */
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+
+        .tag-critical {
+            background: rgba(244, 63, 94, 0.15);
+            color: #fb7185;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+
+        .tag-elevated {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .tag-low {
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .tag-action-surge {
+            background: rgba(219, 39, 119, 0.2);
+            color: #f472b6;
+            border: 1px solid rgba(219, 39, 119, 0.4);
+            font-weight: 700;
+        }
+
+        .tag-action-swap {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .tag-action-monitor {
+            background: rgba(100, 116, 139, 0.15);
+            color: #cbd5e1;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        .mono-num {
+            font-family: var(--font-mono);
+            font-weight: 600;
+        }
+
+        .rank-jump {
+            color: var(--accent-emerald);
+            font-weight: 700;
+        }
+
+        /* Chart Canvas wrapper */
+        .chart-box {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+
+        /* Tab Content Control */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.25s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Export Bar */
+        .footer-action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 1.25rem 2rem;
+            margin-top: 2rem;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: white;
+            border: none;
+            padding: 0.65rem 1.4rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(2, 132, 199, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Operations Navbar -->
+    <header class="top-navbar">
+        <div class="brand-cluster">
+            <div class="brand-icon">✈️</div>
+            <div>
+                <h1 class="brand-title">COMMERCIAL FLEET OPERATIONS CONTROL CENTER</h1>
+                <div class="brand-subtitle">SYSTEM ARCHITECTURE: TURNAROUND OPTIMIZATION &amp; PRESCRIPTIVE DISPATCH</div>
+            </div>
+        </div>
+        <div class="status-cluster">
+            <div class="status-badge">
+                <span class="pulse-dot"></span>
+                <span>OCC TELEMETRY LIVE</span>
+            </div>
+            <div>UTC TIME: <span id="clockUtc" style="color: var(--accent-cyan); font-weight: 700;">--:--:--</span></div>
+            <div>STATUS: <span style="color: #6ee7b7;">ALL 441,348 FLIGHTS SYNCHRONIZED</span></div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-container">
+
+        <!-- Navigation Tabs -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('tab-hub')">
+                <span>📍</span> OCC Hub Analytics &amp; Choke Points
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-dispatch')">
+                <span>⚡</span> Prescriptive Dispatch &amp; PII Queue
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-financial')">
+                <span>💰</span> Financial ROI &amp; Cost Simulator
+            </button>
+        </nav>
+
+        <!-- Slicer Filters Bar -->
+        <section class="slicer-card" id="globalSlicers">
+            <div class="slicer-group">
+                <label class="slicer-label" for="hubSelect">Origin Hub</label>
+                <select id="hubSelect" class="slicer-select" onchange="applyFilters()">
+                    <option value="ALL">All Major Hubs (12)</option>
+                    <option value="ORD">ORD - Chicago O'Hare</option>
+                    <option value="ATL">ATL - Atlanta Hartsfield</option>
+                    <option value="DTW">DTW - Detroit Metro</option>
+                    <option value="DEN">DEN - Denver Intl</option>
+                    <option value="DFW">DFW - Dallas Fort Worth</option>
+                    <option value="EWR">EWR - Newark Liberty</option>
+                    <option value="MIA">MIA - Miami Intl</option>
+                    <option value="SEA">SEA - Seattle-Tacoma</option>
+                    <option value="CLT">CLT - Charlotte Douglas</option>
+                    <option value="LAS">LAS - Las Vegas Harry Reid</option>
+                    <option value="PBI">PBI - Palm Beach</option>
+                    <option value="DCA">DCA - Reagan National</option>
+                </select>
+            </div>
+
+            <div class="slicer-group">
+                <label class="slicer-label" for="carrierSelect">Carrier</label>
+                <select id="carrierSelect" class="slicer-select" onchange="applyFilters()">
+                    <option value="ALL">All Carriers</option>
+                    <option value="DL">DL - Delta Air Lines</option>
+                    <option value="UA">UA - United Airlines</option>
+                    <option value="AA">AA - American Airlines</option>
+                    <option value="WN">WN - Southwest Airlines</option>
+                    <option value="OO">OO - SkyWest Airlines</option>
+                    <option value="B6">B6 - JetBlue Airways</option>
+                    <option value="F9">F9 - Frontier Airlines</option>
+                    <option value="AS">AS - Alaska Airlines</option>
+                </select>
+            </div>
+
+            <div class="slicer-group">
+                <label class="slicer-label">Breach Alert Threshold (P)</label>
+                <div class="slider-wrapper">
+                    <input type="range" id="thresholdSlider" class="range-slider" min="0.30" max="0.70" step="0.05" value="0.50" oninput="updateThreshold(this.value)">
+                    <span id="thresholdDisplay" class="slider-val">0.50</span>
+                </div>
+            </div>
+
+            <div class="slicer-group">
+                <label class="slicer-label">Downstream Multiplier (&alpha;)</label>
+                <div class="slider-wrapper">
+                    <input type="range" id="alphaSlider" class="range-slider" min="0.0" max="1.0" step="0.10" value="0.50" oninput="updateAlpha(this.value)">
+                    <span id="alphaDisplay" class="slider-val">0.50</span>
+                </div>
+            </div>
+
+            <div class="slicer-group" style="margin-left: auto;">
+                <label class="slicer-label">Filter Active State</label>
+                <span id="activeFilteredCount" class="tag-pill tag-low">250 FLIGHTS LOADED</span>
+            </div>
+        </section>
+
+        <!-- Dynamic KPI Cards -->
+        <section class="kpi-grid">
+            <div class="kpi-card kpi-cyan">
+                <div class="kpi-title">
+                    <span>Monitored Turnarounds</span>
+                    <span>📊</span>
+                </div>
+                <div class="kpi-value" id="kpiTotalTurns">441,348</div>
+                <div class="kpi-subtext">Physical aircraft sequences</div>
+            </div>
+
+            <div class="kpi-card kpi-rose">
+                <div class="kpi-title">
+                    <span>Turn Buffer Breaches</span>
+                    <span>⚠️</span>
+                </div>
+                <div class="kpi-value" id="kpiBreaches">39.2%</div>
+                <div class="kpi-subtext">Turns exceeding schedule buffer</div>
+            </div>
+
+            <div class="kpi-card kpi-amber">
+                <div class="kpi-title">
+                    <span>Avg Inbound Latency</span>
+                    <span>⏱️</span>
+                </div>
+                <div class="kpi-value" id="kpiInboundDelay">18.4 min</div>
+                <div class="kpi-subtext">Primary shock to turn capacity</div>
+            </div>
+
+            <div class="kpi-card kpi-purple">
+                <div class="kpi-title">
+                    <span>High Centrality Rotations</span>
+                    <span>🔄</span>
+                </div>
+                <div class="kpi-value" id="kpiCritical">48 Flights</div>
+                <div class="kpi-subtext">Slated for &ge; 3 remaining legs</div>
+            </div>
+
+            <div class="kpi-card kpi-emerald">
+                <div class="kpi-title">
+                    <span>Net Annual Savings</span>
+                    <span>💵</span>
+                </div>
+                <div class="kpi-value" id="kpiSavings">$10.24M</div>
+                <div class="kpi-subtext">20% tactical mitigation @ $75/min</div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 1: HUB ANALYTICS & CHOKE POINTS ================= -->
+        <section id="tab-hub" class="tab-content active">
+            <div class="content-grid-2">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">Major Hub Cascading Delay Severity</h2>
+                            <p class="panel-subtitle">Percentage of turns triggering outbound cascading schedule delays</p>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="hubBarChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">Scheduled vs Actual Turn Duration (min)</h2>
+                            <p class="panel-subtitle">Buffer deficit identification across key airline stations</p>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="turnScatterChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hub Table -->
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Hub Turnaround Bottleneck Leaderboard</h2>
+                        <p class="panel-subtitle">Aggregated via Analytical SQL Window CTE Pipeline</p>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="modern-table" id="hubTable">
+                        <thead>
+                            <tr>
+                                <th>Airport Hub</th>
+                                <th>Carrier</th>
+                                <th>Total Turns</th>
+                                <th>Avg Sched Turn</th>
+                                <th>Avg Actual Turn</th>
+                                <th>Avg Inbound Delay</th>
+                                <th>Buffer Delta</th>
+                                <th>Cascading Delay %</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hubTableBody">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: PRESCRIPTIVE DISPATCH & PII QUEUE ================= -->
+        <section id="tab-dispatch" class="tab-content">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Active Departure Bank Tactical Dispatch Queue</h2>
+                        <p class="panel-subtitle">Prescriptive allocation comparing Naive ML vs Priority Intervention Index (PII)</p>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-cyan); background: rgba(56, 189, 248, 0.08); padding: 0.4rem 0.85rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                        PII = P(Breach) &times; (1 + &alpha; &times; Remaining Legs)
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="modern-table" id="dispatchTable">
+                        <thead>
+                            <tr>
+                                <th>Tail Number</th>
+                                <th>Flight</th>
+                                <th>Carrier</th>
+                                <th>Station</th>
+                                <th>Dest</th>
+                                <th>Time</th>
+                                <th>Inbound Delay</th>
+                                <th>P(Breach)</th>
+                                <th>Rem Legs</th>
+                                <th>PII Score</th>
+                                <th>Naive Rank</th>
+                                <th>PII Rank</th>
+                                <th>Tactical Action Playbook</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dispatchTableBody">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: FINANCIAL ROI & COST SIMULATOR ================= -->
+        <section id="tab-financial" class="tab-content">
+            <div class="content-grid-2">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">Interactive Cost Avoidance Simulator</h2>
+                            <p class="panel-subtitle">Adjust FAA delay cost benchmarks and tactical crew recovery rates</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">FAA Delay Cost Benchmark ($ / minute):</label>
+                                <span id="costSliderVal" class="mono-num" style="color: var(--accent-cyan);">$75.00 / min</span>
+                            </div>
+                            <input type="range" id="costSlider" class="range-slider" style="width: 100%;" min="50" max="120" step="5" value="75" oninput="updateFinancials()">
+                        </div>
+
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Tactical Ground Recovery Efficiency (%):</label>
+                                <span id="recoverySliderVal" class="mono-num" style="color: var(--accent-emerald);">20% Mitigation</span>
+                            </div>
+                            <input type="range" id="recoverySlider" class="range-slider" style="width: 100%;" min="10" max="35" step="1" value="20" oninput="updateFinancials()">
+                        </div>
+
+                        <div style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">Captured True Positive Delay Minutes:</span>
+                                <span class="mono-num" style="color: var(--text-primary);">682,723 mins</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">Gross Delay Cost Exposure:</span>
+                                <span id="grossCostDisplay" class="mono-num" style="color: var(--accent-rose); font-size: 1.1rem;">$51,204,225</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+                                <span style="color: var(--accent-emerald); font-weight: 700; font-size: 0.95rem;">Net Annual Cost Avoidance:</span>
+                                <span id="netSavingsDisplay" class="mono-num" style="color: var(--accent-emerald); font-size: 1.35rem; font-weight: 800;">$10,240,845</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">Top Cost Mitigation Hubs ($ Savings)</h2>
+                            <p class="panel-subtitle">Station-level financial mitigation distribution</p>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="financialBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer / Export Action Bar -->
+        <footer class="footer-action-bar">
+            <div>
+                <div style="font-weight: 700; font-size: 0.95rem;">Looking for Microsoft Power BI Desktop Files?</div>
+                <div style="color: var(--text-muted); font-size: 0.8rem;">Exported dataset `dashboards/turnaround_bi_feed.csv` and enterprise DAX measure dictionary are ready in the repo.</div>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <a href="../dashboards/turnaround_bi_feed.csv" class="btn-download" download>
+                    <span>📥</span> Download Power BI Dataset (.CSV)
+                </a>
+                <a href="../dashboards/power_bi_dax_measures.md" class="btn-download" style="background: #1e293b; border: 1px solid var(--border-color);">
+                    <span>📖</span> View DAX Measures Dictionary
+                </a>
+            </div>
+        </footer>
+
+    </main>
+
+    <!-- Embedded Analytics Data Feed -->
+    <script src="data.js"></script>
+
+    <script>
+        // Tab Navigation
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Live Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clockUtc').innerText = now.toUTCString().slice(17, 25) + ' UTC';
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Global State
+        let currentThreshold = 0.50;
+        let currentAlpha = 0.50;
+        let currentCostPerMin = 75.0;
+        let currentRecoveryRate = 0.20;
+        let hubChartInstance = null;
+        let scatterChartInstance = null;
+        let financialChartInstance = null;
+
+        function updateThreshold(val) {
+            currentThreshold = parseFloat(val);
+            document.getElementById('thresholdDisplay').innerText = parseFloat(val).toFixed(2);
+            renderDispatchTable();
+            updateKpis();
+        }
+
+        function updateAlpha(val) {
+            currentAlpha = parseFloat(val);
+            document.getElementById('alphaDisplay').innerText = parseFloat(val).toFixed(2);
+            renderDispatchTable();
+        }
+
+        function updateFinancials() {
+            currentCostPerMin = parseFloat(document.getElementById('costSlider').value);
+            currentRecoveryRate = parseFloat(document.getElementById('recoverySlider').value) / 100.0;
+            
+            document.getElementById('costSliderVal').innerText = `$${currentCostPerMin.toFixed(2)} / min`;
+            document.getElementById('recoverySliderVal').innerText = `${Math.round(currentRecoveryRate * 100)}% Mitigation`;
+
+            const delayMins = 682723;
+            const gross = delayMins * currentCostPerMin;
+            const net = gross * currentRecoveryRate;
+
+            document.getElementById('grossCostDisplay').innerText = `$${Math.round(gross).toLocaleString()}`;
+            document.getElementById('netSavingsDisplay').innerText = `$${Math.round(net).toLocaleString()}`;
+            document.getElementById('kpiSavings').innerText = `$${(net / 1000000).toFixed(2)}M`;
+        }
+
+        function applyFilters() {
+            renderHubTable();
+            renderDispatchTable();
+            updateKpis();
+        }
+
+        function updateKpis() {
+            if (!window.OCC_DATA) return;
+            const flights = getFilteredFlights();
+            document.getElementById('activeFilteredCount').innerText = `${flights.length} FLIGHTS FILTERED`;
+
+            const breaches = flights.filter(f => f.Breach_Probability >= currentThreshold);
+            const breachPct = flights.length > 0 ? ((breaches.length / flights.length) * 100).toFixed(1) : 0;
+            document.getElementById('kpiBreaches').innerText = `${breachPct}%`;
+
+            const critical = flights.filter(f => f.Breach_Probability >= currentThreshold && f.Remaining_Legs_Today >= 3);
+            document.getElementById('kpiCritical').innerText = `${critical.length} Flights`;
+        }
+
+        function getFilteredHubs() {
+            if (!window.OCC_DATA) return [];
+            const hub = document.getElementById('hubSelect').value;
+            const carrier = document.getElementById('carrierSelect').value;
+
+            return window.OCC_DATA.hub_analytics.filter(item => {
+                const matchHub = (hub === 'ALL') || (item.Airport_Code === hub);
+                const matchCarrier = (carrier === 'ALL') || (item.Airline_Code === carrier);
+                return matchHub && matchCarrier;
+            });
+        }
+
+        function getFilteredFlights() {
+            if (!window.OCC_DATA) return [];
+            const hub = document.getElementById('hubSelect').value;
+            const carrier = document.getElementById('carrierSelect').value;
+
+            return window.OCC_DATA.active_bank_flights.filter(f => {
+                const matchHub = (hub === 'ALL') || (f.Origin === hub);
+                const matchCarrier = (carrier === 'ALL') || (f.Carrier === carrier);
+                return matchHub && matchCarrier;
+            });
+        }
+
+        // Render Hub Table
+        function renderHubTable() {
+            const hubs = getFilteredHubs();
+            const tbody = document.getElementById('hubTableBody');
+            tbody.innerHTML = '';
+
+            hubs.forEach(h => {
+                const isHigh = h.Pct_Cascading_Delay >= 22.0;
+                const statusTag = isHigh 
+                    ? '<span class="tag-pill tag-critical">CHOKE POINT</span>'
+                    : '<span class="tag-pill tag-low">NORMAL FLOW</span>';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="mono-num" style="color: var(--accent-cyan); font-weight:700;">${h.Airport_Code}</td>
+                    <td class="mono-num">${h.Airline_Code}</td>
+                    <td class="mono-num">${h.Total_Turnarounds.toLocaleString()}</td>
+                    <td class="mono-num">${h.Avg_Scheduled_Turn_Mins} min</td>
+                    <td class="mono-num">${h.Avg_Actual_Turn_Mins} min</td>
+                    <td class="mono-num" style="color: ${h.Avg_Inbound_Delay_Mins > 20 ? '#fb7185' : '#cbd5e1'}">${h.Avg_Inbound_Delay_Mins} min</td>
+                    <td class="mono-num" style="color: ${h.Avg_Buffer_Delta_Mins < 0 ? '#fb7185' : '#6ee7b7'}">${h.Avg_Buffer_Delta_Mins} min</td>
+                    <td class="mono-num" style="color: ${isHigh ? '#fb7185' : '#6ee7b7'}; font-weight:700;">${h.Pct_Cascading_Delay}%</td>
+                    <td>${statusTag}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Render Dispatch Board
+        function renderDispatchTable() {
+            let flights = getFilteredFlights();
+            const tbody = document.getElementById('dispatchTableBody');
+            tbody.innerHTML = '';
+
+            // Compute dynamic PII based on alpha slider
+            flights.forEach(f => {
+                f.Dynamic_PII = f.Breach_Probability * (1.0 + currentAlpha * (f.Remaining_Legs_Today || 0));
+            });
+
+            // Sort by Naive Probability to determine Naive Rank
+            flights.sort((a, b) => b.Breach_Probability - a.Breach_Probability);
+            flights.forEach((f, idx) => f.Naive_Rank = idx + 1);
+
+            // Sort by PII to determine Prescriptive PII Rank
+            flights.sort((a, b) => b.Dynamic_PII - a.Dynamic_PII);
+            flights.forEach((f, idx) => f.PII_Rank = idx + 1);
+
+            // Filter by current threshold
+            const displayFlights = flights.filter(f => f.Breach_Probability >= currentThreshold).slice(0, 50);
+
+            displayFlights.forEach(f => {
+                const isCritical = (f.Remaining_Legs_Today >= 3);
+                const isElevated = (f.Remaining_Legs_Today >= 1);
+                
+                let actionTag = '<span class="tag-pill tag-action-monitor">MONITOR BUFFER</span>';
+                if (f.Breach_Probability >= 0.60 && isCritical) {
+                    actionTag = '<span class="tag-pill tag-action-surge">⚡ AUTO-SURGE CREW (HIGH CENTRALITY)</span>';
+                } else if (f.Breach_Probability >= 0.50) {
+                    actionTag = '<span class="tag-pill tag-action-swap">PROACTIVE GATE SWAP</span>';
+                }
+
+                const rankShift = f.Naive_Rank - f.PII_Rank;
+                let rankShiftHtml = `<span class="mono-num">#${f.PII_Rank}</span>`;
+                if (rankShift > 0) {
+                    rankShiftHtml += ` <span class="rank-jump">▲ +${rankShift}</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="mono-num" style="color: var(--accent-cyan); font-weight:700;">${f.Tail_Number}</td>
+                    <td class="mono-num">#${f.Flight_Number}</td>
+                    <td class="mono-num">${f.Carrier}</td>
+                    <td class="mono-num">${f.Origin}</td>
+                    <td class="mono-num">${f.Dest}</td>
+                    <td class="mono-num">${f.Scheduled_Dep_Time}</td>
+                    <td class="mono-num" style="color: ${f.Inbound_Delay_Mins > 15 ? '#fb7185' : '#cbd5e1'}">${f.Inbound_Delay_Mins}m</td>
+                    <td class="mono-num" style="font-weight:700; color: ${f.Breach_Probability >= 0.70 ? '#fb7185' : '#fcd34d'}">${(f.Breach_Probability * 100).toFixed(0)}%</td>
+                    <td class="mono-num" style="font-weight:700; color: ${isCritical ? '#a855f7' : '#cbd5e1'}">${f.Remaining_Legs_Today}</td>
+                    <td class="mono-num" style="color: var(--accent-cyan); font-weight:700;">${f.Dynamic_PII.toFixed(3)}</td>
+                    <td class="mono-num" style="color: var(--text-muted);">#${f.Naive_Rank}</td>
+                    <td>${rankShiftHtml}</td>
+                    <td>${actionTag}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Initialize Charts
+        function initCharts() {
+            if (!window.OCC_DATA) return;
+            const topHubs = window.OCC_DATA.hub_analytics.slice(0, 8);
+
+            // 1. Hub Bar Chart
+            const ctxHub = document.getElementById('hubBarChart').getContext('2d');
+            hubChartInstance = new Chart(ctxHub, {
+                type: 'bar',
+                data: {
+                    labels: topHubs.map(h => `${h.Airport_Code} (${h.Airline_Code})`),
+                    datasets: [{
+                        label: 'Cascading Delay Breach %',
+                        data: topHubs.map(h => h.Pct_Cascading_Delay),
+                        backgroundColor: topHubs.map(h => h.Pct_Cascading_Delay >= 22.0 ? 'rgba(244, 63, 94, 0.7)' : 'rgba(56, 189, 248, 0.7)'),
+                        borderColor: topHubs.map(h => h.Pct_Cascading_Delay >= 22.0 ? '#f43f5e' : '#38bdf8'),
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { family: 'Inter', weight: 600 } }
+                        }
+                    }
+                }
+            });
+
+            // 2. Turn Scatter / Line Chart
+            const ctxScatter = document.getElementById('turnScatterChart').getContext('2d');
+            scatterChartInstance = new Chart(ctxScatter, {
+                type: 'line',
+                data: {
+                    labels: topHubs.map(h => h.Airport_Code),
+                    datasets: [
+                        {
+                            label: 'Actual Turnaround (min)',
+                            data: topHubs.map(h => h.Avg_Actual_Turn_Mins),
+                            borderColor: '#f43f5e',
+                            backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Scheduled Turnaround (min)',
+                            data: topHubs.map(h => h.Avg_Scheduled_Turn_Mins),
+                            borderColor: '#38bdf8',
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#94a3b8', font: { family: 'Inter' } }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { family: 'Inter', weight: 600 } }
+                        }
+                    }
+                }
+            });
+
+            // 3. Financial Mitigation Hub Distribution
+            const ctxFin = document.getElementById('financialBarChart').getContext('2d');
+            financialChartInstance = new Chart(ctxFin, {
+                type: 'bar',
+                data: {
+                    labels: ['ORD (Chicago)', 'DTW (Detroit)', 'ATL (Atlanta)', 'DEN (Denver)', 'MIA (Miami)', 'EWR (Newark)', 'DFW (Dallas)'],
+                    datasets: [{
+                        label: 'Annual Delay Cost Mitigated ($)',
+                        data: [2650000, 2180000, 1850000, 1420000, 920000, 710000, 510000],
+                        backgroundColor: 'rgba(16, 185, 129, 0.65)',
+                        borderColor: '#10b981',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { family: 'JetBrains Mono' },
+                                callback: val => `$${val/1000000}M`
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { family: 'Inter', weight: 600 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderHubTable();
+            renderDispatchTable();
+            initCharts();
+            updateKpis();
+        });
+    </script>
+</body>
+</html>

@@ -7,3 +7,5 @@ matplotlib
 seaborn
 joblib
 python-pptx
+streamlit
+plotly

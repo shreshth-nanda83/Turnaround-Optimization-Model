@@ -7,9 +7,10 @@
 > 🎙️ **Narrated Video Available**: A complete 4-minute-15-second high-definition (1080p) video walkthrough of the presentation deck with AI neural voiceover narration is available at [`Project_Presentation_Walkthrough.mp4`](Project_Presentation_Walkthrough.mp4).
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Streamlit App](https://img.shields.io/badge/⚡_Live_Streamlit_App-Run_or_Deploy-FF4B4B?style=for-the-badge&logo=streamlit)](streamlit_app.py)
 [![SQLite 3](https://img.shields.io/badge/sqlite-3-003B57.svg)](https://www.sqlite.org/)
 [![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.0+-F7931E.svg)](https://scikit-learn.org/)
-[![Interactive OCC Dashboard](https://img.shields.io/badge/🖥️_Interactive_OCC_Dashboard-Live_in_Repo-0284c7?style=for-the-badge)](dashboard/index.html)
+[![Interactive OCC Dashboard](https://img.shields.io/badge/🖥️_Interactive_OCC_Cockpit-Zero_Install_HTML-0284c7?style=for-the-badge)](dashboard/index.html)
 [![Power BI Ready Feed](https://img.shields.io/badge/📊_Power_BI_Ready-Dataset_%2B_DAX-f59e0b?style=for-the-badge)](dashboards/power_bi_dax_measures.md)
 [![FAA Benchmark](https://img.shields.io/badge/FAA%20Cost%20Standard-$75%2Fmin-red.svg)](https://www.faa.gov/)
 [![Potential Cost Savings](https://img.shields.io/badge/Annual%20Savings-$10.24M-success.svg)](#financial-translation--roi-dashboard)
@@ -238,24 +239,38 @@ This project deliberately preserves open-ended frontiers that mirror real-world 
 
 ---
 
-## Interactive OCC Mission Control & Power BI Dashboard
+## Interactive Operations Control Center (OCC) Dashboards
 
-To provide airline station managers and executive leadership with real-time operational decision support, the project includes both an **interactive zero-install OCC Mission Control web application** and an **enterprise Power BI Desktop star-schema deployment pack**:
+To provide airline station managers and executive leadership with real-time operational decision support, the project includes both a **production Streamlit Python web application** and an **enterprise Power BI Desktop star-schema deployment pack**:
 
-### 1. OCC Mission Control Dashboard (`dashboard/index.html`)
-A high-performance dark-mode cockpit interface featuring live telemetry, interactive threshold sweeps, and dynamic flight re-ranking:
+### 1. Production Streamlit OCC Web Application (`streamlit_app.py`)
+Built with **Streamlit** and **Plotly**—the industry-standard framework for interactive Python data science and machine learning applications.
 
-![OCC Hub Analytics & Choke Points](dashboard/dashboard_hub_preview.png)
+![Streamlit Prescriptive Dispatch Queue](dashboard/streamlit_dispatch_preview.png)
 
-* **Tab 1: OCC Network Health & Hub Choke Points**: Interactive airport slicers (`ORD`, `ATL`, `DTW`, `MIA`, etc.), carrier filters, and dual-axis charts comparing scheduled vs. actual turnaround durations to isolate station buffer deficits.
-* **Tab 2: Prescriptive Tactical Dispatch & PII Queue**: Live flight board displaying raw breach probability $P(\text{Breach})$ alongside downstream remaining legs and dynamic **Priority Intervention Index (PII)** re-rankings:
+![Streamlit Hub Network Health](dashboard/streamlit_hub_preview.png)
 
-![Prescriptive Dispatch Queue & PII Rank Shifts](dashboard/dashboard_dispatch_preview.png)
+#### Key Features:
+* **Interactive Slicers & What-If Sliders**:
+  * Multi-select chips for 12 major hubs (`ORD`, `ATL`, `DTW`, `DEN`, `DFW`, `MIA`, etc.) and operating airlines.
+  * **Breach Alert Cutoff ($P$) Slider** ($0.30 - 0.75$): Adjusts dispatch trigger sensitivity in real time.
+  * **Downstream Sensitivity ($\alpha$) Slider** ($0.0 - 1.0$): Dynamically recalibrates the **Priority Intervention Index (PII)** and re-ranks departure banks on the fly.
+  * **FAA Delay Cost Standard Slider** ($\$50 - \$120/\text{min}$) and **Tactical Recovery Rate** ($10\% - 35\%$).
+* **Tab 1: ⚡ Prescriptive Dispatch & PII Queue**: Interactive Plotly scatter plot mapping breach probability vs. remaining legs, with bubble sizes indicating PII scores and tactical action tags (`AUTO-SURGE`, `GATE SWAP`, `MONITOR`).
+* **Tab 2: 📍 Hub Network Health & Bottlenecks**: Dual-axis Plotly bar charts comparing scheduled vs. actual turnaround durations and cascading delay severity percentages.
+* **Tab 3: 💰 Financial ROI Simulator**: Cost avoidance breakdown by hub station and tactical dispatch playbooks.
+* **Tab 4: 🤖 ML Validation Scorecard**: ROC-AUC ($0.833$), PR-AUC ($0.819$), and feature importance breakdowns.
 
-* **Tab 3: Financial ROI & Cost Avoidance Simulator**: What-if sensitivity parameter sliders for the FAA delay cost benchmark ($\$50 - \$120/\text{min}$) and ground crew tactical recovery rate ($10\% - 35\%$), updating annualized cost avoidance metrics in real-time.
+#### How to Run Locally:
+```bash
+streamlit run streamlit_app.py
+```
 
-#### How to Launch the Dashboard:
-Simply open [`dashboard/index.html`](dashboard/index.html) directly in any modern web browser (Edge, Chrome, Safari, Firefox). No backend server, local Node.js, or cloud login required!
+#### How to Deploy to Streamlit Community Cloud (Free Public Link):
+1. Go to [share.streamlit.io](https://share.streamlit.io/) and log in with your GitHub account.
+2. Click **"New app"** $\rightarrow$ Select repository `shreshth-nanda83/Turnaround-Optimization-Model`.
+3. Set Main file path to `streamlit_app.py` and click **Deploy**.
+4. You will get a permanent public URL (e.g. `https://turnaround-optimization.streamlit.app`) to share directly with interviewers!
 
 ---
 
@@ -264,6 +279,11 @@ For organizations standardizing on Microsoft Fabric or Power BI Desktop:
 * **Pre-Aggregated Data Feed**: [`dashboards/turnaround_bi_feed.csv`](dashboards/turnaround_bi_feed.csv) (25,000+ representative operational turns with computed PII scores and tail rotations).
 * **Enterprise DAX Measure Dictionary**: [`dashboards/power_bi_dax_measures.md`](dashboards/power_bi_dax_measures.md) containing verified DAX formulas for dynamic what-if sliders, buffer breach rates, and financial cost translations.
 * **ETL Ingestion Pipeline**: Execute `python src/export_bi_dataset.py` to regenerate refreshed feeds from SQLite.
+
+---
+
+### 3. Zero-Install OCC Mission Control Web View (`dashboard/index.html`)
+For rapid client-side viewing without Python or Node.js dependencies, double-click [`dashboard/index.html`](dashboard/index.html) in any browser.
 
 ---
 
@@ -301,11 +321,12 @@ python src/train_model.py
 
 ```text
 Turnaround_Optimization_Model/
+├── streamlit_app.py                          # Interactive Streamlit OCC Web Application (Plotly)
 ├── dashboard/
-│   ├── index.html                            # Interactive OCC Mission Control Web Dashboard
+│   ├── index.html                            # Zero-Install OCC Mission Control Web Dashboard
 │   ├── data.js                               # Client-side analytics & flight telemetry feed
-│   ├── dashboard_hub_preview.png             # Tab 1 preview: Hub Choke Points & Network Health
-│   └── dashboard_dispatch_preview.png        # Tab 2 preview: Prescriptive PII Dispatch Board
+│   ├── streamlit_dispatch_preview.png        # Streamlit Tab 1 preview: Prescriptive Dispatch Queue
+│   └── streamlit_hub_preview.png             # Streamlit Tab 2 preview: Hub Network Health
 ├── dashboards/
 │   ├── turnaround_bi_feed.csv                # Power BI Desktop pre-aggregated dataset (2.4 MB)
 │   └── power_bi_dax_measures.md              # Star schema architecture & enterprise DAX library
